@@ -1,0 +1,50 @@
+if (CUST_CD.equals("   ")) {
+  return  ['N/A']
+} else 
+if (CUST_CD.equals("CCT")) {
+  return  ['QA6','DST']
+} else 
+if (CUST_CD.equals("CTR")) {
+  return  ['BSC','CT1','TP3']
+} else 
+if (CUST_CD.equals("GAM")) {
+  return  ['GAMTEST','GAM']
+} else 
+if (CUST_CD.equals("INM")) {
+  return  ['IN1','IN2','INM']
+} else 
+if (CUST_CD.equals("NMHC")) {
+  return  ['HA3','HA4','TP2','UUT']
+} else 
+if (CUST_CD.equals("NVM")) {
+  return  ['NVMTEST']
+} else 
+if (CUST_CD.equals("SDM")) {
+  return  ['SDMTEST','SDM']
+} else 
+if (CUST_CD.equals("TNM")) {
+  return  ['TN1','TN2','TNM']
+} else 
+if (CUST_CD.equals("CIG")) {
+  return  ['CI1','CI5','CIG']
+} else 
+if (CUST_CD.equals("KSR")) {
+  return  ['KS1','KS2','KS3']
+} else 
+ if (CUST_CD.equals("RTC")) {
+  return  ['RTC']
+} else 
+if (CUST_CD.equals("RXS")) {
+  return  ['BK1E2E']
+} else 
+if (CUST_CD.equals("RST")) {
+  return  ['RST']
+} else 
+if (CUST_CD.equals("OMC")) {
+  return  ['OMC']
+} else 
+if (CUST_CD.equals("VAH")) {
+  return  ['VAH']
+} else {
+  return ["Unknown state"]
+}
