@@ -1,0 +1,85 @@
+#!/usr/bin/env groovy
+
+def RELEASE = "DEV";
+def PROJECT = "RXCBILLINGEXTRACT";
+def JARREF  = "0.0.2";
+def ARTIFACTJAR1 = "RxClaim_BillingExtract-";
+def RELEASE_NO = "DEV";
+//def DEPLOYENV = "RXBK1UAT UAT";
+def SUBDIRECTORY = "/KingFishers/BillingExtract";
+def CARA_HOSTNAME_URL = "apvrp34109.uhc.com";
+def CARA_AGENT_URL = "apvrp34109.uhc.com";
+
+pipeline {
+  agent {
+    label 'APVRD20377'
+  }
+  tools {
+    maven 'MAVEN 3.6.1 on APVRD20377'
+  }
+  environment {
+    GIT_CRED_ID     = 'svc_ms_git'
+    PROJECT         = 'RXCBILLINGEXTRACT'
+    GIT_BRANCH      = 'develop'
+    EMAIL           = '''OptumRx_IT_BatchJAVA_KingFishers@ds.uhc.com,ConfigurationManagementGroup@sxc.com'''
+    //EMAIL      = 'sameer_bhaisare@optum.com'
+  }
+  options { buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10') 
+      timestamps()
+      disableConcurrentBuilds() 
+      skipStagesAfterUnstable()
+  }
+  stages {
+    stage('Run RA Deploy') {
+      steps {
+        script {         
+		try {
+		    
+	//Defining BUILD_NUMBER as a variable to extract the last successful build number from RXBJAVA build job
+      def BUILDNO = sh returnStdout: true, script: 'wget -qO- --no-check-certificate https://optumrxclm.optum.com/view/RxClaim-BillingExtract/job/RxClaimBillingExtract%20DEV%20Build%20Deploy/lastSuccessfulBuild/buildNumber'
+	  
+	//Encrypting the CARA-ARTIFACTORY username & password
+	      withCredentials([usernamePassword(credentialsId: '883055ef-fe79-43e6-9388-30e19f18a6cc', passwordVariable: 'PSWD', usernameVariable: 'USERNAME')]) {
+				
+	//Triggering RA Deployment	
+	      runRADeployment addPackage: true, application: 'RXCLAIMBATCHJAVA', artifactVersions: [[artifactDef: 'OS400 JAR', artifactType: 'RxJARFiles', artifactVersion: "${ARTIFACTJAR1}JAR-${DEPLOYENV}-${RELEASE}-${BUILD_NUMBER}", artifactVersionDesc: "${ARTIFACTJAR1}JAR-${DEPLOYENV}-${RELEASE}-${BUILD_NUMBER}", artifactsSource: [httpFilePath: "${ARTIFACTJAR1}${JARREF}.jar", httpPassword: '$PSWD', httpUrl: "https://repo1.uhc.com/artifactory/UHG-Snapshots/com/optum/optummax/${PROJECT}/${RELEASE}/${BUILDNO}/${ARTIFACTJAR1}${JARREF}.jar", httpUserName: '$USERNAME', sourceType: 'HTTP', svnAllowUnrevisioned: false], retrievalAgents: [agentName: "${CARA_AGENT_URL}", retrieveBy: 'Agents'], storeInRepository: false, validateMD5: false]], build: "${PROJECT},${DEPLOYENV},${RELEASE},${RELEASE_NO},${SUBDIRECTORY},${BUILD_NUMBER},Build", deploymentDesc: "${PROJECT},${DEPLOYENV},${RELEASE},${RELEASE_NO},${SUBDIRECTORY},${BUILD_NUMBER},Build", deploymentName: "${PROJECT},${DEPLOYENV},${RELEASE},${RELEASE_NO},${SUBDIRECTORY},${BUILD_NUMBER},Build", deploymentPlanDesc: "${PROJECT} ${DEPLOYENV} ${RELEASE} ${BUILD_NUMBER} (${DEPLOYENV}-CARA) Build", deploymentPlanName: "${PROJECT} ${DEPLOYENV} ${RELEASE} ${BUILD_NUMBER} (${DEPLOYENV}-CARA) Build", deploymentPlanUsage: 'Create new deployment plan everytime', deploymentProjectName: 'RXCLAIMBATCHJAVA', deploymentStageToRun: 'Full', environments: "RXCBCHJAVA ${DEPLOYENV}", failBuild: false, failedPaused: true, hostName: '', manifestXMLGenerate: false, manifestXMLUpload: false, packageDesc: "${PROJECT} ${DEPLOYENV}-${RELEASE}-${BUILD_NUMBER}", packageName: "${PROJECT} ${DEPLOYENV}-${RELEASE}-${BUILD_NUMBER}", packageXMLGenerate: true, packageXMLUpload: false, port: '8080', pw: '', runAsync: false, showDebug: true, stepParameters: [[parameterName: '', parameterTypes: [parameterType: 'ApplicationType'], parameterValues: [strValue: '', templatePropertyPass: false, templatePropertyStr: false, valueType: 'String'], processName: '', stageName: 'Initialization', stepName: '']], templateCategoryName: 'RXCLAIMBATCHJAVA', templateName: 'RXCLAIMBATCHJAVA QA Deploy', templateProperties: [[propertyName: '', propertyValue: '']], timeout: '-1', updateManifest: false, updateStepParameters: false, updateTemplateProperties: false, uploadManifestXML: '', uploadPackageXML: '', useCentlCrd: true, useSSL: false, user: ''  
+
+	    echo "${BUILDNO}"    // Printing the last successful build number
+        echo "${build_id}"
+        echo "${DEPLOYENV}"
+                }                 // Ending Credential Block
+	    }                         // Ending Try Block                       
+        catch (exc) {
+            echo 'RA Deployment Failed!!'
+            currentBuild.result = 'FAILURE'
+               }                  // Ending Catch Block 
+            }                     // Ending Script Block
+        }                         // Ending Steps Block
+    }                             // Ending Stage Block
+
+  }                               //stages 
+ post {
+      success {
+          sendEmail("Successful")
+      }
+      unstable {
+          sendEmail("Unstable")
+      }
+      failure {
+          sendEmail("Failure")
+      }
+  }
+}                                 //pipeline
+
+
+ def sendEmail(status) {
+   emailext (
+   to: "$EMAIL", 
+   mimeType: 'text/html',
+   subject: "Build $BUILD_NUMBER - " + status + " ($JOB_NAME)", 
+   body: '''${JELLY_SCRIPT,template="html"}
+        ${CHANGES, showPaths=true, format="<div><b>%a</b>: %r %p </div> &#8212; &#8220;<em>%m</em>&#8221;</div>", pathFormat="</div>%p"}'''
+   )
+} 
+
+
