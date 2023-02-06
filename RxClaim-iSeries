@@ -1,0 +1,134 @@
+#!/usr/bin/env groovy
+
+def CARA_HOSTNAME_URL = "apvrp34109.uhc.com";
+def CARA_AGENT_URL = "apvrp34109.uhc.com";
+
+pipeline {
+    agent { label 'APVRD20377' 
+    }
+environment {
+    EMAIL      = '''gwen.sandoboe@optum.com,kshitij_bisen@optum.com'''
+    }
+
+  stages {
+    stage('Create Manifest') {
+      steps {
+        echo "${CUST_CD}"
+              echo "${RELEASE}"
+              echo "${SHIP_NUM}"
+        script {         
+                             try {
+              //Encrypting the CARA-ARTIFACTORY username & password
+                    withCredentials([usernamePassword(credentialsId: '883055ef-fe79-43e6-9388-30e19f18a6cc', passwordVariable: 'PSWD', usernameVariable: 'USERNAME')]) {
+
+              //Manifest Creation (none)
+              runRADeployment addPackage: false, application: 'RxClaimNew', artifactVersions: [[artifactDef: '', artifactType: '', artifactVersion: 'Version-${build_id}', artifactVersionDesc: '', artifactsSource: [httpFilePath: '', httpPassword: '', httpUrl: '', httpUserName: '', sourceType: 'HTTP', svnAllowUnrevisioned: false], retrievalAgents: [agentName: '', retrieveBy: 'Agents'], storeInRepository: false, validateMD5: false]], build: '${CUST_CD}_${RELEASE}_${SHIP_NUM}', deploymentDesc: 'ManifestCrtDeployment-${CUST_CD}-${SHIP_NUM}-${build_id}', deploymentName: 'ManifestCrtDeployment-${CUST_CD}-${SHIP_NUM}-${build_id}', deploymentPlanDesc: 'ManifestPlan-${CUST_CD}-${SHIP_NUM}', deploymentPlanName: 'ManifestPlan-${CUST_CD}-${SHIP_NUM}-${build_id}', deploymentPlanUsage: 'Create new deployment plan once and use it everytime', deploymentProjectName: 'ManifestCreation', deploymentStageToRun: 'Full', environments: 'Init Environment', failBuild: false, failedPaused: true, hostName: '', manifestXMLGenerate: false, manifestXMLUpload: false, packageDesc: '', packageName: '', packageXMLGenerate: false, packageXMLUpload: false, port: '8080', pw: '', runAsync: false, showDebug: true, stepParameters: [[parameterName: '', parameterTypes: [parameterType: 'ApplicationType'], parameterValues: [strValue: '', templatePropertyPass: false, templatePropertyStr: false, valueType: 'String'], processName: '', stageName: 'Initialization', stepName: '']], templateCategoryName: 'ISeriesNew', templateName: 'CreateManifests_Jenkins', templateProperties: [[propertyName: '', propertyValue: '']], timeout: '-1', updateManifest: false, updateStepParameters: false, updateTemplateProperties: false, uploadManifestXML: '', uploadPackageXML: '', useCentlCrd: true, useSSL: false, user: ''
+                } // Ending Credential Block
+                  } // Ending Try Block                       
+        catch (exc) {
+            echo 'Create Manifest Deployment Failed!!'
+            currentBuild.result = 'FAILURE'
+                    } // Ending Catch Block 
+                } //Ending Script Block
+            } //Ending StepsBlock
+        } //Ending Stage Block
+
+    stage('Create Deploy Jobs - Deploy Pkg') {
+      when {
+            equals expected: "SUCCESS", actual: currentBuild.currentResult
+        }
+      steps {
+        echo "${CUST_CD}"
+        echo "${RELEASE}"
+        echo "${SHIP_NUM}"
+	echo "${TESTENV}"
+        script {
+        	try {
+                env.TESTENV.tokenize(",").each { test_env ->
+              //Encrypting the CARA-ARTIFACTORY username & password
+                    withCredentials([usernamePassword(credentialsId: '883055ef-fe79-43e6-9388-30e19f18a6cc', passwordVariable: 'PSWD', usernameVariable: 'USERNAME')]) {
+              //Deploy Pkg Template
+                             runRADeployment addPackage: false, application: 'RxClaimNew', artifactVersions: [[artifactDef: '', artifactType: '', artifactVersion: 'Version-${build_id}', artifactVersionDesc: '', artifactsSource: [httpFilePath: '', httpPassword: '', httpUrl: '', httpUserName: '', sourceType: 'HTTP', svnAllowUnrevisioned: false], retrievalAgents: [agentName: '', retrieveBy: 'Agents'], storeInRepository: false, validateMD5: false]], build: '${CUST_CD}_${RELEASE}_${SHIP_NUM}', deploymentDesc: "DeployPkg-${CUST_CD}-${RELEASE}_${SHIP_NUM}-${test_env}-${build_id}", deploymentName: "DeployPkg-${CUST_CD}-${RELEASE}_${SHIP_NUM}-${test_env}-${build_id}", deploymentPlanDesc: 'DeployPkg-${CUST_CD}-${RELEASE}_${SHIP_NUM}', deploymentPlanName: 'DeployPkg-${CUST_CD}-${RELEASE}_${SHIP_NUM}', deploymentPlanUsage: 'Create new deployment plan once and use it everytime', deploymentProjectName: 'RxClaim ${RELEASE}', deploymentStageToRun: 'None', environments: "${test_env}", failBuild: false, failedPaused: true, hostName: '', manifestXMLGenerate: false, manifestXMLUpload: false, packageDesc: '', packageName: '', packageXMLGenerate: false, packageXMLUpload: false, port: '8080', pw: '', runAsync: false, showDebug: true, stepParameters: [[parameterName: '', parameterTypes: [parameterType: 'ApplicationType'], parameterValues: [strValue: '', templatePropertyPass: false, templatePropertyStr: false, valueType: 'String'], processName: '', stageName: 'Initialization', stepName: '']], templateCategoryName: 'ISeriesNew', templateName: 'DeployPackage', templateProperties: [[propertyName: '', propertyValue: '']], timeout: '-1', updateManifest: false, updateStepParameters: false, updateTemplateProperties: false, uploadManifestXML: '', uploadPackageXML: '', useCentlCrd: true, useSSL: false, user: ''
+                    echo "Testing environments are ${test_env}"
+                   } //End Credential Block
+                } // Ending Tokenize
+              } // Ending Try Block
+        catch (exc) {
+            echo 'Create Manifest Deployment Failed!!'
+            currentBuild.result = 'FAILURE'
+                    } // Ending Catch Block 
+             } //Ending Script Block
+           } //Ending StepsBlock
+        } //Ending Stage Block
+
+    stage('Create Deploy Jobs - Stage Plan') {
+        when {
+            equals expected: "SUCCESS", actual: currentBuild.currentResult
+        }
+      steps {
+        echo "${CUST_CD}"
+              echo "${RELEASE}"
+              echo "${SHIP_NUM}"
+			  echo "${TESTENV}"
+        script {
+                env.TESTENV.tokenize(",").each { test_env ->
+              //Encrypting the CARA-ARTIFACTORY username & password
+                    withCredentials([usernamePassword(credentialsId: '883055ef-fe79-43e6-9388-30e19f18a6cc', passwordVariable: 'PSWD', usernameVariable: 'USERNAME')]) {
+              //Stage Plan Template
+                             runRADeployment addPackage: false, application: 'RxClaimNew', artifactVersions: [[artifactDef: '', artifactType: '', artifactVersion: 'Version-${build_id}', artifactVersionDesc: '', artifactsSource: [httpFilePath: '', httpPassword: '', httpUrl: '', httpUserName: '', sourceType: 'HTTP', svnAllowUnrevisioned: false], retrievalAgents: [agentName: '', retrieveBy: 'Agents'], storeInRepository: false, validateMD5: false]], build: '${CUST_CD}_${RELEASE}_${SHIP_NUM}', deploymentDesc: "StagePlan-${CUST_CD}-${RELEASE}-${SHIP_NUM}-${test_env}-${build_id}", deploymentName: "StagePlan-${CUST_CD}-${RELEASE}-${SHIP_NUM}-${test_env}-${build_id}", deploymentPlanDesc: 'StagePlan-${CUST_CD}-${RELEASE}-${SHIP_NUM}', deploymentPlanName: 'StagePlan-${CUST_CD}-${RELEASE}-${SHIP_NUM}', deploymentPlanUsage: 'Create new deployment plan once and use it everytime', deploymentProjectName: 'RxClaim ${RELEASE}', deploymentStageToRun: 'None', environments: "${test_env}", failBuild: false, failedPaused: true, hostName: '', manifestXMLGenerate: false, manifestXMLUpload: false, packageDesc: '', packageName: '', packageXMLGenerate: false, packageXMLUpload: false, port: '8080', pw: '', runAsync: false, showDebug: true, stepParameters: [[parameterName: '', parameterTypes: [parameterType: 'ApplicationType'], parameterValues: [strValue: '', templatePropertyPass: false, templatePropertyStr: false, valueType: 'String'], processName: '', stageName: 'Initialization', stepName: '']], templateCategoryName: 'ISeriesNew', templateName: 'StagePackages', templateProperties: [[propertyName: '', propertyValue: '']], timeout: '-1', updateManifest: false, updateStepParameters: false, updateTemplateProperties: false, uploadManifestXML: '', uploadPackageXML: '', useCentlCrd: true, useSSL: false, user: ''
+                    echo "Testing environments are ${test_env}"
+                  } //End Credential Block
+                } // Ending Tokenize
+             } //Ending Script Block
+           } //Ending StepsBlock
+        } //Ending Stage Block
+
+
+    stage('Create Deploy Jobs - Install Plan') {
+        when {
+            equals expected: "SUCCESS", actual: currentBuild.currentResult
+        }
+      steps {
+        echo "${CUST_CD}"
+              echo "${RELEASE}"
+              echo "${SHIP_NUM}"
+			  echo "${TESTENV}"
+        script {
+                env.TESTENV.tokenize(",").each { test_env ->
+              //Encrypting the CARA-ARTIFACTORY username & password
+                    withCredentials([usernamePassword(credentialsId: '883055ef-fe79-43e6-9388-30e19f18a6cc', passwordVariable: 'PSWD', usernameVariable: 'USERNAME')]) {
+              //Install Plan Template
+                             runRADeployment addPackage: false, application: 'RxClaimNew', artifactVersions: [[artifactDef: '', artifactType: '', artifactVersion: 'Version-${build_id}', artifactVersionDesc: '', artifactsSource: [httpFilePath: '', httpPassword: '', httpUrl: '', httpUserName: '', sourceType: 'HTTP', svnAllowUnrevisioned: false], retrievalAgents: [agentName: '', retrieveBy: 'Agents'], storeInRepository: false, validateMD5: false]], build: '${CUST_CD}_${RELEASE}_${SHIP_NUM}', deploymentDesc: "InstallPlan-${CUST_CD}-${RELEASE}-${SHIP_NUM}-${test_env}-${build_id}", deploymentName: "InstallPlan-${CUST_CD}-${RELEASE}-${SHIP_NUM}-${test_env}-${build_id}", deploymentPlanDesc: 'InstallPlan-${CUST_CD}-${RELEASE}-${SHIP_NUM}', deploymentPlanName: 'InstallPlan-${CUST_CD}-${RELEASE}-${SHIP_NUM}', deploymentPlanUsage: 'Create new deployment plan once and use it everytime', deploymentProjectName: 'RxClaim ${RELEASE}', deploymentStageToRun: 'None', environments: "${test_env}", failBuild: false, failedPaused: true, hostName: '', manifestXMLGenerate: false, manifestXMLUpload: false, packageDesc: '', packageName: '', packageXMLGenerate: false, packageXMLUpload: false, port: '8080', pw: '', runAsync: false, showDebug: true, stepParameters: [[parameterName: '', parameterTypes: [parameterType: 'ApplicationType'], parameterValues: [strValue: '', templatePropertyPass: false, templatePropertyStr: false, valueType: 'String'], processName: '', stageName: 'Initialization', stepName: '']], templateCategoryName: 'ISeriesNew', templateName: 'InstallPackages', templateProperties: [[propertyName: '', propertyValue: '']], timeout: '-1', updateManifest: false, updateStepParameters: false, updateTemplateProperties: false, uploadManifestXML: '', uploadPackageXML: '', useCentlCrd: true, useSSL: false, user: ''
+                    echo "Testing environments are ${test_env}"
+                    } //End Credential Block
+                } // Ending Tokenize
+                    } //Ending Script Block
+            } //Ending StepsBlock
+        } //Ending Stage Block
+    } //Ending Stages Block
+
+
+post {
+      success {
+          sendEmail("Successful")
+      }
+      unstable {
+          sendEmail("Unstable")
+      }
+      failure {
+          sendEmail("Failure")
+      }
+  } //post
+
+} //pipeline
+
+
+def sendEmail(status) {
+   emailext (
+   to: "$EMAIL", 
+   mimeType: 'text/html',
+   subject: "Build $BUILD_NUMBER - " + status + " ($JOB_NAME)" + "(Release:${RELEASE} Shipment:${SHIP_NUM} Cust:${CUST_CD}:${TESTENV})", 
+   body: '''${JELLY_SCRIPT,template="html"}
+        ${CHANGES, showPaths=true, format="<div><b>%a</b>: %r %p </div> &#8212; &#8220;<em>%m</em>&#8221;</div>", pathFormat="</div>%p"}'''
+   )
+} 
